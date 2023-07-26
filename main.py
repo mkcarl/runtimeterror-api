@@ -1,9 +1,10 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 from firebase import firestore
 
 app = Flask(__name__)
-
+CORS(app)
 
 @app.route('/')
 def index():
@@ -138,5 +139,5 @@ def reset():
 """
 if __name__ == "__main__":
     from waitress import serve
-    serve(app, host="0.0.0.0", port=8080)
     print(f'Running on http://localhost:8080')
+    serve(app, host="0.0.0.0", port=8080)
