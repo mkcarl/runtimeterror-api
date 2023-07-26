@@ -136,3 +136,7 @@ def reset():
         4. inventory controller manages all the orders, approve based on inventory stock
         
 """
+if __name__ == "__main__":
+    from waitress import serve
+    serve(app, host="0.0.0.0", port=8080)
+    print(f'Running on http://localhost:8080')
