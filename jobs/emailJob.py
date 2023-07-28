@@ -57,6 +57,7 @@ def get_unread_emails():
     results = service.users().messages().list(userId='me', q='is:unread').execute()
     return results.get('messages', [])
 
+
 def reply_email(message, reply_content, attachment_path=None):
     reply_message = MIMEMultipart()
 
@@ -69,7 +70,6 @@ def reply_email(message, reply_content, attachment_path=None):
 
     reply_message.attach(reply_text)
 
-
     try:
 
         if attachment_path:
@@ -77,7 +77,8 @@ def reply_email(message, reply_content, attachment_path=None):
                 attachment = MIMEBase('application', 'octet-stream')
                 attachment.set_payload(f.read())
                 encoders.encode_base64(attachment)
-                attachment.add_header('Content-Disposition', f'attachment; filename="{os.path.basename(attachment_path)}"')
+                attachment.add_header('Content-Disposition',
+                                      f'attachment; filename="{os.path.basename(attachment_path)}"')
                 reply_message.attach(attachment)
     except Exception as e:
         print('Error: Unable to attach file')
@@ -88,6 +89,7 @@ def reply_email(message, reply_content, attachment_path=None):
 
     service.users().messages().send(userId='me', body=body).execute()
     print(f'Replied to {message["From"]} about {message["Subject"]}')
+
 
 def extract_info(message):
     info = {}
@@ -125,12 +127,16 @@ def extract_info(message):
 
                 expected_columns = ['items', 'quantity']
                 if not set(expected_columns).issubset(df.columns):
-                    reply_email(msg, f'Please ensure that your excel file has the following columns: {expected_columns}')
+                    # reply_email(msg, f'Please ensure that your excel file has the following columns: {expected_columns}')
                     continue
 
-                info['attachment']= df.set_index('items')['quantity'].to_dict()
+                info['attachment'] = df.set_index('items')['quantity'].to_dict()
     if not info.get('attachment'):
-        reply_email(msg, f'Please ensure that your email has an excel attachment following the format. Attached is the template file.', r'template.xlsx')
+        reply_email(msg,
+                    f'Please ensure that your email has an excel attachment following the format. Attached is the template file. Do download and edit the attached file.',
+                    r'template.xlsx')
+    else:
+        reply_email(msg, f'Thank you for your request. We will get back to you shortly.')
 
     return info
 
@@ -142,7 +148,6 @@ def mark_email_as_read(email_id):
         print(f"Email with ID {email_id} marked as read.")
     except Exception as e:
         print("Error marking email as read:", e)
-
 
 
 while True:
@@ -158,9 +163,9 @@ while True:
 
         firestore.collection('Requests').add(
             {
-                'Subject': info['subject'],
-                'Sender': info['sender'],
-                'Body': info['body'],
+                'Subject': info.get('subject'),
+                'Sender': info.get('sender'),
+                'Body': info.get('body'),
                 'Attachment': info.get('attachment') or {},
                 'Status': 'Pending',
                 'Conversation': [],
@@ -169,5 +174,3 @@ while True:
         )
 
     time.sleep(10)
-
-
