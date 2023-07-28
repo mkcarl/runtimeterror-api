@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import functools
 
 from firebase import firestore
 
@@ -30,7 +31,7 @@ def inventory():
 
 @app.route('/requests', methods=['GET'])
 def requests():
-    requests = firestore.collection('Requests').get()
+    requests = firestore.collection('Requests')
     '''
         Attachment: map | null, 
         Body: string, 
@@ -40,9 +41,13 @@ def requests():
         Title: string, 
         Timestamp: integer
     '''
-    requests_json = jsonify([doc.to_dict() for doc in requests])
-    return requests_json
+    requests_list = []
+    for doc in requests.get():
+        request = doc.to_dict()
+        request['id'] = doc.id
+        requests_list.append(request)
 
+    return requests_list
 
 @app.route('/requests/approve', methods=['POST'])
 def reqApprove():
@@ -68,8 +73,13 @@ def reqApprove():
 def orders():
     orders = firestore.collection('Orders')
     if request.method == 'GET':
-        orders_json = jsonify([doc.to_dict() for doc in orders.get()])
-        return orders_json
+        orders_list = []
+        for doc in orders.get():
+            order  = doc.to_dict()
+            order['id'] = doc.id
+            orders_list.append(order)
+
+        return orders_list
 
 
 @app.route('/orders/approve', methods=['POST'])
@@ -109,7 +119,7 @@ def reset():
 
     firestore.collection('Requests').document(req2_id).set({
         'Attachments': {
-            'chicken': 220,
+            'eggplant': 220,
             'potato': 20
         },
         'Body': 'bro, get me these',
@@ -128,6 +138,55 @@ def reset():
     })
 
     return 'reset done'
+
+@app.route('/dashboard', methods=['GET'])
+def dashboard():
+    if request.method == 'GET':
+        orders = firestore.collection('Orders')
+        requests  = firestore.collection('Requests')
+        inventory = firestore.collection('InventoryStock')
+
+        fulfilledOrders = orders.where('fulfilled', '==', True).get()
+        fulfilledOrdersItems = functools.reduce(lambda acc, curr: acc+list(curr.get('items').items()), fulfilledOrders, [])
+
+        allInventory = list(x.to_dict() for x in inventory.get())
+        revenue  = 0
+        items_out = 0
+        for (item, qty) in fulfilledOrdersItems:
+            target = filter(lambda x : x['Name'] == item, allInventory).__next__()
+            revenue = revenue + target['PricePerUnit'] * qty
+            items_out = items_out + qty
+
+        def mergeItemsIntoDict(acc, curr):
+            if curr[0] in acc:
+                acc[curr[0]] += curr[1]
+            else:
+                acc[curr[0]] = curr[1]
+            return acc
+
+        reducedFulfilledOrderItems = functools.reduce(mergeItemsIntoDict, fulfilledOrdersItems, {})
+        # for dashboard data ^
+
+        data = {
+            'orders': {
+                'fulfilled': orders.where('fulfilled', '==', True).count().get().pop().pop().value,
+                'pending': orders.where('fulfilled', '==', False).count().get().pop().pop().value,
+            },
+            'requests': {
+                'approved': requests.where('Status', '==', 'approved').count().get().pop().pop().value,
+                'pending': requests.where('Status', '==', 'pending').count().get().pop().pop().value,
+                'rejected': requests.where('Status', '==', 'rejected').count().get().pop().pop().value,
+            },
+            'inventory': {
+                'in': None,
+                'out': items_out
+            },
+            'revenue': revenue,
+            'inventoryItemOut': reducedFulfilledOrderItems
+        }
+        print(data)
+        return data
+
 
 """
     program flow 
