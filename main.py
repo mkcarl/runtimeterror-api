@@ -113,6 +113,7 @@ def reset():
         'Body': 'Hi, i want to order these',
         'Conversation': [],
         'Sender_email': 'mkcarl.dev@gmail.com',
+        'Subject': 'Order Request 1',
         'Status': 'approved',
         'Timestamp': 0,
     })
@@ -125,6 +126,7 @@ def reset():
         'Body': 'bro, get me these',
         'Conversation': [],
         'Sender_email': 'mkcarl.dev@gmail.com',
+        'Subject': 'Order Request 2',
         'Status': 'pending',
         'Timestamp': 0,
     })
