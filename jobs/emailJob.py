@@ -166,7 +166,7 @@ while True:
                 'Subject': info.get('subject'),
                 'Sender': info.get('sender'),
                 'Body': info.get('body'),
-                'Attachment': info.get('attachment') or {},
+                'Attachments': info.get('attachment') or {},
                 'Status': 'pending',
                 'Conversation': [],
                 'timestamp': time.time_ns() // 1000000
